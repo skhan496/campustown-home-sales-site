@@ -36,6 +36,11 @@
     footer { border-top:1px solid var(--line); padding:1.5rem 1.25rem 2.5rem; color:var(--muted); font-size:.85rem; }
     footer p { max-width:1100px; margin:auto; }
     .error { color:#9c2e24; }
+    .scatter-wrap { width:100%; }
+    #scatter { display:block; width:100%; height:420px; }
+    .axis-label { fill:var(--muted); font:12px system-ui,sans-serif; }
+    .grid-line { stroke:#e4ebed; stroke-width:1; }
+    .point { fill:#087e83; fill-opacity:.34; }
     @media(max-width:600px) { .bar-row { grid-template-columns:minmax(94px,120px) 1fr 90px; gap:.5rem; } .place {font-size:.82rem} .value {font-size:.82rem} th,td {padding:.68rem .4rem;font-size:.9rem} }
   </style>
 </head>
@@ -57,11 +62,19 @@
       <p class="intro">Sales below $1,000 are excluded, following the dataset documentation.</p>
       <div class="table-wrap"><table><thead><tr><th scope="col">City</th><th scope="col">State</th><th scope="col" class="num">Eligible sales</th><th scope="col" class="num">Median sale price</th></tr></thead><tbody id="results"></tbody></table></div>
     </section>
+    <section class="panel" aria-labelledby="scatter-title">
+      <h2 id="scatter-title">Do bigger homes sell for more?</h2>
+      <p class="intro">Each dot is one eligible home sale. The horizontal axis shows finished living area; the vertical axis shows sale price.</p>
+      <div class="scatter-wrap"><canvas id="scatter" role="img" aria-label="Scatter plot of home living area in square feet against sale price in dollars"></canvas></div>
+      <p class="notes" id="scatter-note">To keep invalid and documented extreme values from distorting the view, this plot excludes records with missing or nonpositive living area, sale prices below $1,000, and sale prices above $5,000,000. The documentation flags zero square-foot living areas and prices above $5 million as implausible. The $1,000 lower price limit follows its median-price convention.</p>
+      <p class="intro" id="scatter-count" aria-live="polite"></p>
+    </section>
     <p class="notes">A median is the middle sale price after eligible sales are ordered; it is less affected by unusually high or low prices than an average. Sale prices are reported by the collection source and have not been independently verified against county records. Individual towns may include unusual prices above the $1,000 cutoff.</p>
   </main>
   <footer><p>Source: College-town home sales dataset, version 1.0 (2026). University of Illinois-Deloitte Foundation Center for Business Emerging Technologies. Data collected March 2026.</p></footer>
   <script>
     const currency = new Intl.NumberFormat('en-US', { style:'currency', currency:'USD', maximumFractionDigits:0 });
+    let scatterPoints = [];
     function parseCSV(text) {
       const rows=[]; let row=[], field='', quoted=false;
       for (let i=0;i<text.length;i++) { const c=text[i];
@@ -79,10 +92,12 @@
       const response=await fetch('data/college_town_home_sales.csv');
       if(!response.ok) throw new Error(`Dataset request failed (${response.status})`);
       const rows=parseCSV(await response.text()), headers=rows.shift();
-      const cityIndex=headers.indexOf('city'), stateIndex=headers.indexOf('state'), priceIndex=headers.indexOf('sale_price');
-      if([cityIndex,stateIndex,priceIndex].some(i=>i<0)) throw new Error('The dataset is missing a required column.');
-      const groups=new Map(); let included=0;
+      const cityIndex=headers.indexOf('city'), stateIndex=headers.indexOf('state'), priceIndex=headers.indexOf('sale_price'), areaIndex=headers.indexOf('living_area_sqft');
+      if([cityIndex,stateIndex,priceIndex,areaIndex].some(i=>i<0)) throw new Error('The dataset is missing a required column.');
+      const groups=new Map(), points=[]; let included=0;
       for(const row of rows){ const price=Number(row[priceIndex]); if(!Number.isFinite(price)||price<1000) continue;
+        const area=Number(row[areaIndex]);
+        if(Number.isFinite(area)&&area>0&&price<=5000000) points.push({area,price});
         const city=row[cityIndex],state=row[stateIndex],key=`${city}\u0000${state}`;
         if(!groups.has(key)) groups.set(key,{city,state,prices:[]}); groups.get(key).prices.push(price); included++;
       }
@@ -91,7 +106,31 @@
       document.querySelector('#summary').innerHTML=`<strong>${included.toLocaleString()} eligible sales</strong><span>${data.length} cities and towns</span><span>Data collected March 2026</span>`;
       document.querySelector('#chart').innerHTML=data.map(d=>`<div class="bar-row"><span class="place">${d.city}, ${d.state}</span><div class="track"><div class="bar" style="width:${d.median/max*100}%"></div></div><span class="value">${currency.format(d.median)}</span></div>`).join('');
       document.querySelector('#results').innerHTML=data.map(d=>`<tr><td>${d.city}</td><td>${d.state}</td><td class="num">${d.count.toLocaleString()}</td><td class="num"><strong>${currency.format(d.median)}</strong></td></tr>`).join('');
+      scatterPoints = points;
+      document.querySelector('#scatter-count').textContent=`${points.length.toLocaleString()} sales shown`;
+      drawScatter(scatterPoints);
     }
+    function drawScatter(points) {
+      const canvas=document.querySelector('#scatter'), rect=canvas.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+      const width=rect.width, height=420, pad={left:76,right:18,top:16,bottom:54};
+      canvas.width=Math.round(width*dpr); canvas.height=Math.round(height*dpr); canvas.style.height=`${height}px`;
+      const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,width,height);
+      const maxX=Math.ceil(Math.max(...points.map(p=>p.area))/500)*500, maxY=5000000;
+      const plotW=width-pad.left-pad.right, plotH=height-pad.top-pad.bottom;
+      ctx.strokeStyle='#e4ebed'; ctx.fillStyle='#617482'; ctx.lineWidth=1; ctx.font='12px system-ui';
+      for(let i=0;i<=5;i++){
+        const y=pad.top+plotH-(plotH*i/5), value=maxY*i/5;
+        ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(width-pad.right,y);ctx.stroke();
+        ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(value===0?'$0':`$${(value/1000000).toFixed(value%1000000?1:0)}M`,pad.left-9,y);
+        const x=pad.left+plotW*i/5, sqft=maxX*i/5;
+        ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(`${Math.round(sqft).toLocaleString()}`,x,height-pad.bottom+10);
+      }
+      ctx.fillStyle='#087e83';ctx.globalAlpha=.34;
+      for(const p of points){const x=pad.left+(p.area/maxX)*plotW,y=pad.top+plotH-(p.price/maxY)*plotH;ctx.beginPath();ctx.arc(x,y,2.2,0,Math.PI*2);ctx.fill();}
+      ctx.globalAlpha=1;ctx.fillStyle='#617482';ctx.font='13px system-ui';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText('Home size (square feet)',pad.left+plotW/2,height-6);
+      ctx.save();ctx.translate(16,pad.top+plotH/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText('Home sale price (dollars)',0,0);ctx.restore();
+    }
+    let resizeTimer; window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(scatterPoints.length)drawScatter(scatterPoints);},120);});
     render().catch(error=>{document.querySelector('#summary').innerHTML=`<span class="error">Could not load sale data. ${error.message}</span>`;});
   </script>
 </body>
