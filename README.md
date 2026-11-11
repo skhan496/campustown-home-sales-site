@@ -21,3 +21,7 @@ The dataset is also provided as Excel, SQLite, DuckDB, and Parquet files for ind
 ## Citation
 
 College-town home sales dataset, version 1.0 (2026). University of Illinois-Deloitte Foundation Center for Business Emerging Technologies. Data collected March 2026.
+
+## Home size and sale price
+
+The scatter plot titled “Do bigger homes sell for more?” uses `living_area_sqft` on the horizontal axis and `sale_price` on the vertical axis, with one dot per included sale. It excludes missing or nonpositive living area, prices below $1,000, and prices above $5,000,000. The data description identifies zero square-foot living areas as invalid, prices below $1,000 as implausible, and sales above $5 million as extreme. The upper limit keeps these documented extremes from compressing the rest of the chart. The plotted sale count is shown with the chart.
