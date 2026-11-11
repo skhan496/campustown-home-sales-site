@@ -1,31 +1,98 @@
-<!DOCTYPE html>
-<!-- A placeholder from the Home Sales template. Replace this file with your site's first page. -->
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Under construction</title>
-  <!-- An empty icon, so the browser doesn't log an error looking for favicon.ico -->
+  <meta name="description" content="Median home sale prices across 18 college towns, based on completed sales in the College-town home sales dataset.">
+  <title>Home prices in college towns</title>
   <link rel="icon" href="data:,">
   <style>
-    :root { color-scheme: light dark; }
-    body {
-      max-width: 40rem;
-      margin: 0 auto;
-      padding: 3rem 1rem;
-      font-family: system-ui, sans-serif;
-      line-height: 1.5;
-    }
-    footer { margin-top: 3rem; font-size: 0.875rem; opacity: 0.75; }
+    :root { color-scheme: light; --ink:#142b3b; --muted:#617482; --line:#dce5e8; --paper:#f4f7f6; --teal:#087e83; --teal-dark:#075e65; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    header { background:#102c3d; color:#fff; padding:clamp(2.5rem,7vw,5.5rem) max(1.25rem,calc((100vw - 1100px)/2)); }
+    .eyebrow { color:#91d4ce; font-size:.78rem; font-weight:750; letter-spacing:.14em; text-transform:uppercase; }
+    h1 { margin:.6rem 0; max-width:760px; font-size:clamp(2.3rem,6vw,4.4rem); line-height:1.04; letter-spacing:-.045em; }
+    header p { max-width:660px; color:#d1e1e6; font-size:1.08rem; }
+    main { max-width:1100px; margin:2rem auto 4rem; padding:0 1.25rem; }
+    .summary { display:flex; flex-wrap:wrap; gap:.5rem 1.5rem; align-items:center; margin:0 0 1.2rem; color:var(--muted); }
+    .summary strong { color:var(--ink); }
+    .panel { background:white; border:1px solid var(--line); border-radius:18px; box-shadow:0 12px 34px #142b3b0c; margin:1rem 0 1.5rem; padding:clamp(1.1rem,3vw,2rem); }
+    h2 { margin:0 0 .35rem; font-size:1.45rem; letter-spacing:-.02em; }
+    .intro { color:var(--muted); margin:.2rem 0 1.5rem; }
+    #chart { display:grid; gap:.55rem; }
+    .bar-row { display:grid; grid-template-columns:minmax(120px,190px) 1fr minmax(90px,130px); align-items:center; gap:.85rem; }
+    .place { font-weight:650; font-size:.92rem; }
+    .track { height:14px; border-radius:99px; background:#eaf0f0; overflow:hidden; }
+    .bar { height:100%; border-radius:inherit; background:linear-gradient(90deg,#0a9291,var(--teal-dark)); }
+    .value { text-align:right; font-variant-numeric:tabular-nums; font-weight:700; white-space:nowrap; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { text-align:left; padding:.78rem .65rem; border-bottom:1px solid var(--line); }
+    th { color:var(--muted); font-size:.76rem; letter-spacing:.07em; text-transform:uppercase; }
+    td.num,th.num { text-align:right; font-variant-numeric:tabular-nums; }
+    tbody tr:last-child td { border-bottom:0; }
+    .notes { max-width:780px; color:var(--muted); font-size:.92rem; }
+    footer { border-top:1px solid var(--line); padding:1.5rem 1.25rem 2.5rem; color:var(--muted); font-size:.85rem; }
+    footer p { max-width:1100px; margin:auto; }
+    .error { color:#9c2e24; }
+    @media(max-width:600px) { .bar-row { grid-template-columns:minmax(94px,120px) 1fr 90px; gap:.5rem; } .place {font-size:.82rem} .value {font-size:.82rem} th,td {padding:.68rem .4rem;font-size:.9rem} }
   </style>
 </head>
 <body>
+  <header>
+    <div class="eyebrow">College-town home sales · 2026</div>
+    <h1>What does a home cost near campus?</h1>
+    <p>Compare typical sale prices across 18 college towns. Each figure is the median of recorded home sales at or above $1,000.</p>
+  </header>
   <main>
-    <h1>This site is under construction</h1>
-    <p>It will show findings from the College-town home sales dataset.</p>
+    <div class="summary" id="summary" aria-live="polite">Loading verified sale records…</div>
+    <section class="panel" aria-labelledby="chart-title">
+      <h2 id="chart-title">Median sale price by city</h2>
+      <p class="intro">Cities are ranked from highest to lowest. Bars share a common scale.</p>
+      <div id="chart" role="img" aria-label="Bar chart of median home sale price by city"></div>
+    </section>
+    <section class="panel" aria-labelledby="table-title">
+      <h2 id="table-title">The numbers behind the chart</h2>
+      <p class="intro">Sales below $1,000 are excluded, following the dataset documentation.</p>
+      <div class="table-wrap"><table><thead><tr><th scope="col">City</th><th scope="col">State</th><th scope="col" class="num">Eligible sales</th><th scope="col" class="num">Median sale price</th></tr></thead><tbody id="results"></tbody></table></div>
+    </section>
+    <p class="notes">A median is the middle sale price after eligible sales are ordered; it is less affected by unusually high or low prices than an average. Sale prices are reported by the collection source and have not been independently verified against county records. Individual towns may include unusual prices above the $1,000 cutoff.</p>
   </main>
-  <footer>
-    <p>Data: College-town home sales dataset, version 1.0 (2026). University of Illinois-Deloitte Foundation Center for Business Emerging Technologies. Data collected March 2026.</p>
-  </footer>
+  <footer><p>Source: College-town home sales dataset, version 1.0 (2026). University of Illinois-Deloitte Foundation Center for Business Emerging Technologies. Data collected March 2026.</p></footer>
+  <script>
+    const currency = new Intl.NumberFormat('en-US', { style:'currency', currency:'USD', maximumFractionDigits:0 });
+    function parseCSV(text) {
+      const rows=[]; let row=[], field='', quoted=false;
+      for (let i=0;i<text.length;i++) { const c=text[i];
+        if (quoted) { if(c==='"'&&text[i+1]==='"'){field+='"';i++;} else if(c==='"') quoted=false; else field+=c; }
+        else if(c==='"') quoted=true;
+        else if(c===','){row.push(field);field='';}
+        else if(c==='\n'){row.push(field.replace(/\r$/,''));rows.push(row);row=[];field='';}
+        else field+=c;
+      }
+      if(field||row.length){row.push(field.replace(/\r$/,''));rows.push(row);}
+      return rows;
+    }
+    function median(values) { values.sort((a,b)=>a-b); const mid=Math.floor(values.length/2); return values.length%2?values[mid]:(values[mid-1]+values[mid])/2; }
+    async function render() {
+      const response=await fetch('data/college_town_home_sales.csv');
+      if(!response.ok) throw new Error(`Dataset request failed (${response.status})`);
+      const rows=parseCSV(await response.text()), headers=rows.shift();
+      const cityIndex=headers.indexOf('city'), stateIndex=headers.indexOf('state'), priceIndex=headers.indexOf('sale_price');
+      if([cityIndex,stateIndex,priceIndex].some(i=>i<0)) throw new Error('The dataset is missing a required column.');
+      const groups=new Map(); let included=0;
+      for(const row of rows){ const price=Number(row[priceIndex]); if(!Number.isFinite(price)||price<1000) continue;
+        const city=row[cityIndex],state=row[stateIndex],key=`${city}\u0000${state}`;
+        if(!groups.has(key)) groups.set(key,{city,state,prices:[]}); groups.get(key).prices.push(price); included++;
+      }
+      const data=[...groups.values()].map(d=>({...d,median:median(d.prices),count:d.prices.length})).sort((a,b)=>b.median-a.median||a.city.localeCompare(b.city));
+      const max=Math.max(...data.map(d=>d.median));
+      document.querySelector('#summary').innerHTML=`<strong>${included.toLocaleString()} eligible sales</strong><span>${data.length} cities and towns</span><span>Data collected March 2026</span>`;
+      document.querySelector('#chart').innerHTML=data.map(d=>`<div class="bar-row"><span class="place">${d.city}, ${d.state}</span><div class="track"><div class="bar" style="width:${d.median/max*100}%"></div></div><span class="value">${currency.format(d.median)}</span></div>`).join('');
+      document.querySelector('#results').innerHTML=data.map(d=>`<tr><td>${d.city}</td><td>${d.state}</td><td class="num">${d.count.toLocaleString()}</td><td class="num"><strong>${currency.format(d.median)}</strong></td></tr>`).join('');
+    }
+    render().catch(error=>{document.querySelector('#summary').innerHTML=`<span class="error">Could not load sale data. ${error.message}</span>`;});
+  </script>
 </body>
 </html>

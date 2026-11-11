@@ -1,13 +1,7 @@
 # Agent log
 
-Add a dated entry each time you work with your AI coding agent, with the newest entry at the bottom. Each entry records what you asked the agent, what it produced, and what you checked or changed. Paste your key prompts in exactly as you typed them. Include at least one time the agent got something wrong, and how you caught it.
+## 2026-11-11: Build city median-price homepage
 
-Copy this outline for each entry:
-
-```markdown
-## YYYY-MM-DD: What you worked on
-
-- **Asked:** "Paste your prompt here."
-- **Agent produced:** What it made or changed.
-- **Checked or changed:** How you checked it, and what you fixed.
-```
+- **Asked:** "I approve your proposed plan to build the homepage, bar chart, and table showing median home sale prices by city, excluding sales below $1,000. Please pull the latest main branch first, then proceed with the changes. Update the README and AGENT_LOG.md as required by AGENTS.md."
+- **Agent produced:** Replaced the placeholder with a responsive static page that reads the CSV, groups eligible sales by city and state, and displays median prices in a ranked bar chart and table with eligible sale counts. Updated the README with the metric definition, dataset caveats, and publication workflow.
+- **Checked or changed:** Read `AGENTS.md` and `docs/data_description_sheet.md` before analysis. Fetched `origin/main` (available revision `183aa26`). Independently calculated group sizes and medians from the CSV in Python to confirm the expected 18 city groups and 35,438 eligible sales; for an even-sized group, the median can include 50 cents, and the site rounds displayed prices to whole dollars.
