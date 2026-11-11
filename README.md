@@ -25,3 +25,12 @@ College-town home sales dataset, version 1.0 (2026). University of Illinois-Delo
 ## Home size and sale price
 
 The scatter plot titled “Do bigger homes sell for more?” uses `living_area_sqft` on the horizontal axis and `sale_price` on the vertical axis, with one dot per included sale. It excludes missing or nonpositive living area, prices below $1,000, and prices above $5,000,000. The data description identifies zero square-foot living areas as invalid, prices below $1,000 as implausible, and sales above $5 million as extreme. The upper limit keeps these documented extremes from compressing the rest of the chart. The plotted sale count is shown with the chart.
+## Visualization Choices
+
+I chose to explore two questions using the college-town home sales dataset:
+
+1. **How do median home sale prices compare across college towns?** I used a bar chart to compare typical sale prices across the 18 cities and towns.
+
+2. **Do bigger homes sell for more?** I used a scatter plot to explore the relationship between living area (square feet) and sale price.
+
+I selected these visualizations because I wanted to compare housing affordability across college towns and explore how property size relates to sale price.
