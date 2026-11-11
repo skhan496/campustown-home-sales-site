@@ -33,4 +33,4 @@ I chose to explore two questions using the college-town home sales dataset:
 
 2. **Do bigger homes sell for more?** I used a scatter plot to explore the relationship between living area (square feet) and sale price.
 
-I selected these visualizations because I wanted to compare housing affordability across college towns and explore how property size relates to sale price.
+I selected these visualizations because I wanted to compare housing affordability across college towns and explore how property size relates to the sale price.
